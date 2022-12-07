@@ -34,6 +34,25 @@ variable "amis" {
   }
 } 
 
+variable "key_pairs" {
+  description = "A map of key pairs to use for the instances."
+  type        = map(map(string))
+  default = {
+    "jenkins_main" = {
+      key_name = "jenkins"
+      context = "main"
+    },
+    "jenkins_worker" = {
+      key_name = "jenkins"
+      context = "worker"
+    },
+    "chat_ecs" = {
+      key_name = "chat"
+      context = "ecs"
+    },
+  }
+}
+
 variable "jenkins_main_instance_type" {
   description = "The instance type to use for the Jenkins master."
   type        = string

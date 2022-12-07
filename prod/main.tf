@@ -101,84 +101,34 @@ module "efs" {
 }
 # ---------------------------
 
-# --- KEY PAIRS AND SSM PARAMETERS ---
-# Creating a key pair for EC2 instance and storing it in local machine and in parameter store
-resource "tls_private_key" "jenkins_main" {
-  algorithm = "RSA"
-  rsa_bits  = 4096
+# --- KEY PAIRS ---
+module "key_pairs"{
+  source = "../modules/keys"
+  for_each = var.key_pairs
+  key_name = each.value.key_name
+  context = each.value.context
+  environment = local.environment
 }
+# -----------------
 
-resource "local_file" "jenkins_private_key" {
-  content  = tls_private_key.jenkins_main.private_key_pem
-  filename = "keys/jenkins_main.pem"
-}
-
-resource "aws_key_pair" "jenkins_main" {
-  key_name   = "jenkins_main"
-  public_key = tls_private_key.jenkins_main.public_key_openssh
-}
-
-resource "aws_ssm_parameter" "jenkins_main_private_key" {
-  name      = "/${local.environment}/jenkins/main/private_key"
-  type      = "SecureString"
-  value     = tls_private_key.jenkins_main.private_key_pem
-  key_id    = "alias/aws/ssm"
-  overwrite = true
-  tier      = "Standard"
-  tags = {
-    Name        = "jenkins_main_private_key"
-    Environment = "production"
-    Automation  = "Terraform"
-  }
-}
-
+# --- AMI USED FOR EC2 INSTANCES ---
 module "ami" {
   source = "../modules/ami"
   for_each = var.amis
   owners = each.value.owners
   ami_name = each.value.ami_name
 }
+# -----------------------------------
 
-data "aws_ami" "ubuntu_ami" {
-  most_recent = true
-  owners      = ["099720109477"]
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
-  }
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-  filter {
-    name   = "root-device-type"
-    values = ["ebs"]
-  }
-}
-
-# --- ECS AMI ---
-data "aws_ami" "ecs_ami" {
-  most_recent = true
-  owners      = ["591542846629"]
-  filter {
-    name   = "name"
-    values = ["*amazon-ecs-optimized"]
-  }
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-}
 # ---------------
 # defining an EC2 instance in public subnet for running docker container with jenkins
 # resource "aws_instance" "jenkins_main_controller" {
-#   ami                         = data.aws_ami.ubuntu_ami.id
 #   ami                         = module.ami["ubuntu"].id
 #   instance_type               = var.jenkins_main_instance_type
 #   subnet_id                   = aws_subnet.public_subnet["public-1"].id
 #   vpc_security_group_ids      = [aws_security_group.public_security_group.id]
 #   associate_public_ip_address = true
-#   key_name                    = aws_key_pair.jenkins_main.key_name
+#   key_name                    = module.key_pairs["jenkins_main"].key_name
 #   tags                        = { Name = "public-${local.name_prefix}-instance" }
 #   lifecycle { ignore_changes = [security_groups] }
 
@@ -266,23 +216,7 @@ data "aws_ecr_repository" "service" {
 }
 # -----------------------
 
-# --- ECS INSTANCE KEY PAIR ---
-resource "tls_private_key" "chat_app_key" {
-  algorithm = "RSA"
-  rsa_bits  = 4096
-}
 
-resource "local_file" "chat_app_key" {
-  filename        = "keys/${local.app_name}-key.pem"
-  content         = tls_private_key.chat_app_key.private_key_pem
-  file_permission = "0400"
-}
-
-resource "aws_key_pair" "chat_app_key" {
-  key_name   = "${local.app_name}-key"
-  public_key = tls_private_key.chat_app_key.public_key_openssh
-}
-# ------------------------------
 
 # --- IAM role for ECS agent ---
 data "aws_iam_policy_document" "ecs_agent" {
@@ -457,12 +391,11 @@ resource "aws_security_group" "chat_app_cluster" {
 # --- ECS CLUSTER ---
 resource "aws_launch_configuration" "chat_app_lc" {
   name_prefix = "chat-app"
-  # image_id             = "ami-0fe5f366c083f59ca"
-  # image_id                    = data.aws_ami.ecs_ami.id
   image_id                    = module.ami["linux_ecs"].id
   instance_type               = var.free_tier_instance_type
   iam_instance_profile        = aws_iam_instance_profile.ecs_agent.name
-  key_name                    = aws_key_pair.chat_app_key.key_name
+  key_name                    = module.key_pairs["chat_ecs"].key_name
+  # key_name                    = aws_key_pair.chat_app_key.key_name
   security_groups             = [aws_security_group.chat_app_cluster.id]
   user_data                   = "#!/bin/bash\necho ECS_CLUSTER=chat-app >> /etc/ecs/ecs.config"
   associate_public_ip_address = true
