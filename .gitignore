@@ -29,3 +29,7 @@ override.tf.json
 # example: *tfplan*
 *.pem
 *.pub
+
+# Ignore certificate files
+certs/*
+keys/*

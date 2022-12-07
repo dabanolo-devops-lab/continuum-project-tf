@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  jenkins:
+    image: public.ecr.aws/r7v4s4l1/dabanolo/jenkins:1.0.0
+    privileged: true
+    user: root
+    ports:
+      - 443:8443
+      - 50000:50000
+    container_name: dabanolo_jenkins
+    volumes:
+      - /var/jenkins_home:/var/jenkins_home
+      - /home/ubuntu/jenkins_certs:/certs/client:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      JAVA_OPTS: -Djenkins.install.runSetupWizard=false
+      JENKINS_OPTS: --httpPort=-1 --httpsPort=8443 --httpsKeyStore=/certs/client/jenkins.jks --httpsKeyStorePassword=90032753204
+    restart: on-failure
