@@ -6,6 +6,7 @@ locals {
   app_name    = "chatapp"
   domain_name = "dannybanol.dev"
   create_cloudwatch_log_group = true
+  create_jenkins_main_instance = true
 }
 
 data "aws_availability_zones" "available" {
@@ -119,6 +120,26 @@ module "ami" {
   ami_name = each.value.ami_name
 }
 # -----------------------------------
+
+# --- SSM PARAMETERS ---
+data "aws_ssm_parameter" "jks_pass" {
+  name = "/${local.environment}/jenkins/keystore/pass"
+}
+# ----------------------
+
+# --- EC2 INSTANCE FOR JENKINS ---
+module "jenkins_instance" {
+  source = "../modules/ec2"
+  efs_repository_id = module.efs.efs_id
+  keystore_pass = data.aws_ssm_parameter.jks_pass.value
+  ami_id = module.ami["ubuntu"].id
+  subnet_id = aws_subnet.public_subnet["public-1"].id
+  security_group_ids = [aws_security_group.public_security_group.id]
+  key_name = module.key_pairs["jenkins_main"].public_key_name
+  private_key = module.key_pairs["jenkins_main"].private_key_pem
+  instance_name = "${local.environment}-jenkins-main"
+}
+# --------------------------------
 
 # ---------------
 # defining an EC2 instance in public subnet for running docker container with jenkins
@@ -394,7 +415,7 @@ resource "aws_launch_configuration" "chat_app_lc" {
   image_id                    = module.ami["linux_ecs"].id
   instance_type               = var.free_tier_instance_type
   iam_instance_profile        = aws_iam_instance_profile.ecs_agent.name
-  key_name                    = module.key_pairs["chat_ecs"].key_name
+  key_name                    = module.key_pairs["chat_ecs"].public_key_name
   # key_name                    = aws_key_pair.chat_app_key.key_name
   security_groups             = [aws_security_group.chat_app_cluster.id]
   user_data                   = "#!/bin/bash\necho ECS_CLUSTER=chat-app >> /etc/ecs/ecs.config"

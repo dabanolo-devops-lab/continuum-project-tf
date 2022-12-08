@@ -42,10 +42,6 @@ variable "key_pairs" {
       key_name = "jenkins"
       context = "main"
     },
-    "jenkins_worker" = {
-      key_name = "jenkins"
-      context = "worker"
-    },
     "chat_ecs" = {
       key_name = "chat"
       context = "ecs"

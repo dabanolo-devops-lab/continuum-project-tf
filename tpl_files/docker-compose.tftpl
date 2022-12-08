@@ -15,5 +15,5 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       JAVA_OPTS: -Djenkins.install.runSetupWizard=false
-      JENKINS_OPTS: --httpPort=-1 --httpsPort=8443 --httpsKeyStore=/certs/client/jenkins.jks --httpsKeyStorePassword=90032753204
+      JENKINS_OPTS: --httpPort=-1 --httpsPort=8443 --httpsKeyStore=/certs/client/jenkins.jks --httpsKeyStorePassword=${keystore_pass}
     restart: on-failure

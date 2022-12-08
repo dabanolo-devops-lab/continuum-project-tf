@@ -33,3 +33,4 @@ override.tf.json
 # Ignore certificate files
 certs/*
 keys/*
+files/*
