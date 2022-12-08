@@ -1,31 +1,32 @@
 pipeline {
   agent {
     node {
-      label 'Terraform'
+      label 'terraform'
     }
 
   }
   stages {
     stage('Checkout code') {
       steps {
-        git(url: 'https://github.com/dabanolo-devops-lab/continuum-project', branch: 'terraform')
+        sh 'echo "${BRANCH_NAME}"'
+        // git branch: 'main', credentialsId: 'jenkins-dabanolo-continuum', url: 'https://github.com/dabanolo-devops-lab/continuum-project'
       }
     }
-    stage('init') {
-      steps {
-        sh 'terraform init'
-      }
-    }
-    stage('plan') {
-      steps {
-        sh 'terraform plan'
-      }
-    }
-    stage('apply') {
-      steps {
-        sh 'terraform apply --auto-approve'
-      }
-    }
+    // stage('init') {
+    //   steps {
+    //     sh 'terraform init'
+    //   }
+    // }
+    // stage('plan') {
+    //   steps {
+    //     sh 'terraform plan'
+    //   }
+    // }
+    // stage('apply') {
+    //   steps {
+    //     sh 'terraform apply --auto-approve'
+    //   }
+    // }
   }
   environment {
     docker_tag = 'continuum-app'
