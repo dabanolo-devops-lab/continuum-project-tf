@@ -2,18 +2,6 @@ locals {
   region                  = "us-east-1"
 }
 
-resource "aws_kms_key" "tf-bucket-key" {
-  description             = "Encryption key for the S3 backend bucket"
-  deletion_window_in_days = 10
-  enable_key_rotation     = true
-}
-
-resource "aws_kms_alias" "key-alias" {
-  name                    = "alias/tf-bucket-key"
-  target_key_id           = aws_kms_key.tf-bucket-key.key_id
-}
-
-
 # Terraform backend S3 bucket
 
 resource "aws_s3_bucket" "private_bucket" {
@@ -30,7 +18,6 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "private_bucket" {
 
   rule {
     apply_server_side_encryption_by_default {
-      kms_master_key_id   = aws_kms_key.tf-bucket-key.arn
       sse_algorithm       = "aws:kms"
     }
   }
