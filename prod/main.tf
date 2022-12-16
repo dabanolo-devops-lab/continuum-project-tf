@@ -15,7 +15,93 @@
 
 # data "aws_region" "current" {}
 
-# # Defining a VPC
+resource "local_file" "jenkins_password" {
+  filename = "${path.root}/../../certs/jenkins.keystore"
+}
+
+data "aws_ssm_parameter" "jenkins_pass" {
+  name = "/production/jenkins/keystore/pass"
+}
+
+#  ----------------- VPC -----------------
+resource "google_compute_network" "vpc_network" {
+  name                    = "vpc-network"
+  auto_create_subnetworks = false
+}
+
+# ----------------- SUBNET -----------------
+resource "google_compute_subnetwork" "vpc_subnet" {
+  name                     = "vpc-subnet"
+  ip_cidr_range            = "10.0.1.0/24"
+  region                   = "us-east1"
+  network                  = google_compute_network.vpc_network.self_link
+  private_ip_google_access = true
+}
+
+# ----------------- FIREWALL -----------------
+resource "google_compute_firewall" "vpc_firewall" {
+  name    = "vpc-firewall"
+  network = google_compute_network.vpc_network.self_link
+
+  allow {
+    protocol = "tcp"
+    ports    = ["22", "80", "443", "50000"]
+  }
+
+  allow {
+    protocol = "icmp"
+  }
+  # Change to the IP address provided by VPN
+  source_ranges = ["0.0.0.0/0"]
+}
+
+# ----------------- INSTANCE -----------------
+module "key_pairs" {
+  for_each = {
+    "jenkins" = {
+      "context" = "jenkins",
+    }
+  }
+  source      = "../modules/key_pairs"
+  context     = each.value.context
+  environment = var.environment
+  user        = var.user
+}
+
+# ----------- JENKINS DATA DISK -----------
+resource "google_compute_disk" "jenkins_data" {
+  name = "jenkins"
+  type = "pd-ssd"
+  zone = "us-east1-b"
+  size = "5"
+}
+
+
+module "gcp_instance" {
+  source        = "../modules/gcp_instance"
+  for_each      = var.gcp_instances
+  instance_name = each.value.instance_name
+  environment   = var.environment
+  user          = each.value.user
+  context       = each.value.context
+  instance_type = each.value.instance_type
+  vpc_network   = google_compute_network.vpc_network.self_link
+  vpc_subnet    = google_compute_subnetwork.vpc_subnet.self_link
+  public_key    = module.key_pairs[each.value.context].public_key
+  private_key   = module.key_pairs[each.value.context].private_key
+  disk_source   = google_compute_disk.jenkins_data.id
+  disk_name     = google_compute_disk.jenkins_data.name
+  template_file = "${path.root}/../tpl_files/gcp_jenkins.tftpl"
+  template_vars = {
+    "keystore-pass" = data.aws_ssm_parameter.jenkins_pass.value,
+    "user-instance" = each.value.user,
+  }
+  file_source      = "${path.root}/../../certs/jenkins.keystore"
+  file_destination = "/home/${each.value.user}/jenkins.jks"
+}
+
+
+
 # resource "aws_vpc" "vpc" {
 #   cidr_block           = var.vpc_cidr_block
 #   enable_dns_hostnames = true

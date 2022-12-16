@@ -1,3 +1,45 @@
+variable "instance_name" {
+  type        = string
+  default     = "instance-name"
+  description = "Name of the instance"
+}
+
+variable "cloud" {
+  type        = string
+  default     = "gcp"
+  description = "Cloud provider"
+}
+
+variable "environment" {
+  type        = string
+  default     = "production"
+  description = "Environment"
+}
+
+variable "user" {
+  type        = string
+  default     = "admin"
+  description = "User designated for the instance"
+}
+
+variable "context" {
+  type        = string
+  default     = "jenkins"
+  description = "Context of use for the instance"
+}
+
+variable "gcp_instances" {
+  type = map(any)
+  default = {
+    "jenkins" = {
+      context       = "jenkins",
+      user          = "ubuntu",
+      instance_name = "jenkins-instance",
+      instance_type = "e2-medium"
+    }
+  }
+}
+
 # variable "free_tier_instance_type" {
 #   description = "The instance type to use based on free tier availability."
 #   type        = string

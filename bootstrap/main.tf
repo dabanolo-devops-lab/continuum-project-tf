@@ -18,7 +18,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "private_bucket" {
 
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm       = "aws:kms"
+      sse_algorithm       = "AES256"
     }
   }
 }
@@ -36,12 +36,6 @@ resource "aws_s3_bucket_public_access_block" "private_bucket" {
   ignore_public_acls      = true
   restrict_public_buckets = true
 }
-
-# Terraform state bucket logging ?? 
-
-
-
-# Terraform state lock table
 
 resource "aws_dynamodb_table" "tf-state-lock" {
   name                    = "tf-state-lock"
