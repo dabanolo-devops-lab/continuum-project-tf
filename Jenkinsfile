@@ -3,7 +3,9 @@ pipeline {
     node {
       label 'terraform'
     }
-
+  }
+  options {
+    ansiColor('xterm')
   }
   stages {
     stage('Checkout code') {
