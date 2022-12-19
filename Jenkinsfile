@@ -14,24 +14,25 @@ pipeline {
     }
     stage('init') {
       steps {
-        sh 'terraform init'
+        sh 'terraform -chdir=prod/ init'
       }
     }
     stage('validate') {
       steps {
-        sh 'terraform validate'
+        sh 'terraform -chdir=prod/ validate'
       }
     }
     stage('plan') {
       steps {
-        sh 'terraform plan'
+        sh 'terraform -chdir=prod/ plan'
       }
     }
-    // stage('apply') {
-    //   steps {
-    //     sh 'terraform apply --auto-approve'
-    //   }
-    // }
+    stage('apply') {
+      steps {
+        // sh 'terraform apply --auto-approve'
+        sh 'echo "SUCCESS"'
+      }
+    }
   }
   environment {
     docker_tag = 'continuum-app'

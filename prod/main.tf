@@ -17,9 +17,9 @@ locals {
       template_vars = {
         "keystore-pass"     = data.aws_ssm_parameter.jenkins_pass.value,
         "user-instance"     = local.user,
-        "jenkins-caddyfile" = file("${path.root}/../tpl_files/gcp_caddyfile.tftpl"),
-        "domain-cert"       = file("${path.root}/../../certs/domain.cert.pem"),
-        "private-key-cert"  = file("${path.root}/../../certs/private.key.pem"),
+        "jenkins-caddyfile" = data.aws_ssm_parameter.intermediate_cert.value,
+        "domain-cert"       = data.aws_ssm_parameter.domain_cert.value,
+        "private-key-cert"  = data.aws_ssm_parameter.private_key.value,
       },
       # file_source      = "${path.root}/../../certs/jenkins.keystore",
       # file_destination = "/home/${local.user}/jenkins.jks",
