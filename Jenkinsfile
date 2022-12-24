@@ -56,10 +56,10 @@ pipeline {
       steps {
         withAWS(region:'us-east-1',credentials:'aws_dabanolo'){
           script {
-            def APPLY_CHOICE=input  message: 'Do you want to apply the changes into the infrasctructure?',
-                                    ok: 'Ok',
-                                    parameters: [booleanParam('Apply')]
-            if ("${APPLY_CHOICE}") {
+            def APPLY_CHOICE=input  message: 'Do you want to apply the changes into the infrasctructure?', 
+                                    ok: 'Submit', 
+                                    parameters: [choice(choices: ['apply', 'discard'], name: 'terraform_choice')]
+            if ("${APPLY_CHOICE}" == "apply") {
                 echo "APPLYING"
                 sh """#!/bin/bash -el
                 terraform -chdir=prod/ apply --auto-approve -var "app_version=${BUILD_VERSION}"
