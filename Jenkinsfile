@@ -9,6 +9,7 @@ pipeline {
     #!/bin/bash -el
     tail -n 1 /home/ubuntu/jenkins/build_version
     """, returnStdout: true).trim()
+    docker_tag = 'continuum-app'
   }
   options {
     ansiColor('xterm')
@@ -61,8 +62,5 @@ pipeline {
         sh 'echo "${BUILD_VERSION}"'
       }
     }
-  }
-  environment {
-    docker_tag = 'continuum-app'
   }
 }
