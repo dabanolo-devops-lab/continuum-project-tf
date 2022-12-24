@@ -55,7 +55,9 @@ pipeline {
       }
       steps {
         withAWS(region:'us-east-1',credentials:'aws_dabanolo'){
-          sh 'terraform -chdir=prod/ apply --auto-approve -var "app_version=${BUILD_VERSION}"'
+          sh """#!/bin/bash -el
+          terraform -chdir=prod/ apply --auto-approve -var "app_version=${BUILD_VERSION}"
+          """
         }
         sh 'echo "SUCCESS"'
         sh 'echo "${BUILD_VERSION}"'
