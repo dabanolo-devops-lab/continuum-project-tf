@@ -5,7 +5,10 @@ pipeline {
     }
   }
   environment{
-    BUILD_VERSION = sh(script: "$(tail -n 1 /home/ubuntu/jenkins/build_version)", returnStdout: true).trim()
+    BUILD_VERSION = sh(script: """
+    #!/bin/bash -el
+    tail -n 1 /home/ubuntu/jenkins/build_version
+    """, returnStdout: true).trim()
   }
   options {
     ansiColor('xterm')
