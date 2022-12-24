@@ -25,14 +25,26 @@ pipeline {
       }
     }
     stage('plan') {
+      environment{
+        BUILD_VERSION = sh(script: "tail -n 1 /home/ubuntu/jenkins/build_version", returnStdout: true).trim()
+      }
       steps {
-        sh 'terraform -chdir=prod/ plan'
+        sh 'echo "${BUILD_VERSION}"'
+        sh 'terraform -chdir=prod/ plan -var "app_version=${BUILD_VERSION}"'
       }
     }
     stage('apply') {
+      when {
+        branch 'main'
+      }
+      environment{
+        BUILD_VERSION = sh(script: "tail -n 1 /home/ubuntu/jenkins/build_version", returnStdout: true).trim()
+      }
       steps {
         // sh 'terraform apply --auto-approve'
+        // sh 'terraform -chdir=prod/ apply --auto-approve -var "app_version=${BUILD_VERSION}"'
         sh 'echo "SUCCESS"'
+        sh 'echo "${BUILD_VERSION}"'
       }
     }
   }

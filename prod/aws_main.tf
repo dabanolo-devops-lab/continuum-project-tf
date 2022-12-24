@@ -1,10 +1,10 @@
 locals {
-  region      = "us-east-1"
-  name_prefix = "chat"
-  environment = "production"
-  app_name    = "chatapp"
-  domain_name = "dannybanol.dev"
-  create_cloudwatch_log_group = true
+  region                       = "us-east-1"
+  name_prefix                  = "chat"
+  environment                  = "production"
+  app_name                     = "chatapp"
+  domain_name                  = "dannybanol.dev"
+  create_cloudwatch_log_group  = true
   create_jenkins_main_instance = true
 }
 data "aws_availability_zones" "available" {
@@ -14,57 +14,57 @@ data "aws_availability_zones" "available" {
 data "aws_region" "current" {}
 
 # ---------- DEFINE VPC ----------
-  resource "aws_vpc" "vpc" {
-    cidr_block           = var.vpc_cidr_block
-    enable_dns_hostnames = true
-    enable_dns_support   = true
-    tags = {
-      Name        = "${local.name_prefix}-vpc"
-      Environment = local.environment
-      Terraform   = "true"
-    }
+resource "aws_vpc" "vpc" {
+  cidr_block           = var.vpc_cidr_block
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+  tags = {
+    Name        = "${local.name_prefix}-vpc"
+    Environment = local.environment
+    Terraform   = "true"
   }
+}
 # ---------- DEFINE SUBNETS ----------
-  resource "aws_subnet" "public_subnet" {
-    for_each                = var.public_subnets
-    vpc_id                  = aws_vpc.vpc.id
-    cidr_block              = cidrsubnet(aws_vpc.vpc.cidr_block, 8, each.value)
-    availability_zone       = tolist(data.aws_availability_zones.available.names)[each.value]
-    map_public_ip_on_launch = true
-    tags = {
-      Name        = each.key
-      Terraform   = "true"
-      Environment = local.environment
-    }
+resource "aws_subnet" "public_subnet" {
+  for_each                = var.public_subnets
+  vpc_id                  = aws_vpc.vpc.id
+  cidr_block              = cidrsubnet(aws_vpc.vpc.cidr_block, 8, each.value)
+  availability_zone       = tolist(data.aws_availability_zones.available.names)[each.value]
+  map_public_ip_on_launch = true
+  tags = {
+    Name        = each.key
+    Terraform   = "true"
+    Environment = local.environment
   }
+}
 
 # ---------- DEFINE ROUTE TABLE ----------
-  resource "aws_route_table" "public_route_table" {
-    vpc_id = aws_vpc.vpc.id
-    route {
-      cidr_block = "0.0.0.0/0"
-      gateway_id = aws_internet_gateway.internet_gateway.id
-    }
-    tags = {
-      Name = "public-${local.name_prefix}-route-table"
-    }
+resource "aws_route_table" "public_route_table" {
+  vpc_id = aws_vpc.vpc.id
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.internet_gateway.id
   }
+  tags = {
+    Name = "public-${local.name_prefix}-route-table"
+  }
+}
 
 # ---------- DEFINE ROUTE TABLE ASSOCIATION ----------
-  resource "aws_route_table_association" "public_route_table_association" {
-    for_each       = aws_subnet.public_subnet
-    subnet_id      = each.value.id
-    route_table_id = aws_route_table.public_route_table.id
-    depends_on     = [aws_subnet.public_subnet]
-  }
+resource "aws_route_table_association" "public_route_table_association" {
+  for_each       = aws_subnet.public_subnet
+  subnet_id      = each.value.id
+  route_table_id = aws_route_table.public_route_table.id
+  depends_on     = [aws_subnet.public_subnet]
+}
 
 # ---------- DEFINE INTERNET GATEWAY ----------
-  resource "aws_internet_gateway" "internet_gateway" {
-    vpc_id = aws_vpc.vpc.id
-    tags = {
-      Name = "public-${local.name_prefix}-internet-gateway"
-    }
+resource "aws_internet_gateway" "internet_gateway" {
+  vpc_id = aws_vpc.vpc.id
+  tags = {
+    Name = "public-${local.name_prefix}-internet-gateway"
   }
+}
 
 # # ---------- DEFINE SECURITY GROUP JK ----------
 #   resource "aws_security_group" "public_security_group" {
@@ -93,21 +93,21 @@ data "aws_region" "current" {}
 #   }
 
 # --- KEY PAIRS ---
-module "key_pairs_aws"{
-  source = "../modules/keys"
-  for_each = var.key_pairs
-  key_name = each.value.key_name
-  context = each.value.context
+module "key_pairs_aws" {
+  source      = "../modules/keys"
+  for_each    = var.key_pairs
+  key_name    = each.value.key_name
+  context     = each.value.context
   environment = local.environment
 }
 
 # --- AMI USED FOR EC2 INSTANCES ---
-  module "ami" {
-    source = "../modules/ami"
-    for_each = var.amis
-    owners = each.value.owners
-    ami_name = each.value.ami_name
-  }
+module "ami" {
+  source   = "../modules/ami"
+  for_each = var.amis
+  owners   = each.value.owners
+  ami_name = each.value.ami_name
+}
 
 
 # # # aws_acm_certificate.cert.arn
@@ -194,9 +194,9 @@ data "aws_ssm_parameter" "private_key" {
 }
 
 resource "aws_acm_certificate" "cert" {
-  private_key        =  data.aws_ssm_parameter.private_key.value
-  certificate_body   =  data.aws_ssm_parameter.domain_cert.value
-  certificate_chain  =  data.aws_ssm_parameter.intermediate_cert.value
+  private_key       = data.aws_ssm_parameter.private_key.value
+  certificate_body  = data.aws_ssm_parameter.domain_cert.value
+  certificate_chain = data.aws_ssm_parameter.intermediate_cert.value
   # depends_on = [data.local_file.chain_cert, data.local_file.body_cert, data.local_file.key_cert]
 }
 # # ----------------------
@@ -269,7 +269,7 @@ resource "aws_alb_listener" "front_end_https" {
 resource "aws_autoscaling_group" "chat_app_asg" {
   name                      = "chat-app"
   vpc_zone_identifier       = [aws_subnet.public_subnet["public-1"].id]
-  max_size                  = 2
+  max_size                  = 3
   min_size                  = 1
   desired_capacity          = 1
   health_check_grace_period = 120
@@ -327,7 +327,7 @@ resource "aws_security_group" "chat_app_cluster" {
 
 # ---------- ECS CLUSTER ----------
 resource "aws_launch_configuration" "chat_app_lc" {
-  name_prefix = "chat-app"
+  name_prefix                 = "chat-app"
   image_id                    = module.ami["linux_ecs"].id
   instance_type               = var.free_tier_instance_type
   iam_instance_profile        = aws_iam_instance_profile.ecs_agent.name
@@ -346,16 +346,16 @@ resource "aws_ecs_cluster" "chat_app_cluster" {
 }
 
 resource "aws_ecs_task_definition" "chat_app" {
-  family = "chat-app"
+  family             = "chat-app"
   execution_role_arn = aws_iam_role.ecs_agent_ecs.arn
-  task_role_arn = aws_iam_role.ecs_agent_ecs.arn
+  task_role_arn      = aws_iam_role.ecs_agent_ecs.arn
   # network_mode = "awsvpc"
   container_definitions = jsonencode([
     {
-      name      = "${data.aws_ecr_repository.service.name}"
-      image     = "${data.aws_ecr_repository.service.repository_url}:${var.app_version}"
-      essential = true
-      memory    = 512
+      name        = "${data.aws_ecr_repository.service.name}"
+      image       = "${data.aws_ecr_repository.service.repository_url}:${var.app_version}"
+      essential   = true
+      memory      = 512
       cpu         = 512
       environment = []
       portMappings = [
@@ -398,18 +398,18 @@ resource "aws_cloudwatch_log_group" "chat_app" {
   retention_in_days = 14
 }
 # ---------------------------------
- output "task_definition" {
+output "task_definition" {
   value = aws_ecs_task_definition.chat_app.arn
- }
+}
 
- output "ecs_cluster" {
+output "ecs_cluster" {
   value = aws_ecs_cluster.chat_app_cluster.id
- }
+}
 
- output "target_group_alb" {
+output "target_group_alb" {
   value = aws_alb_target_group.app.id
- }
+}
 
- output "container_name" {
+output "container_name" {
   value = data.aws_ecr_repository.service.name
- }
+}

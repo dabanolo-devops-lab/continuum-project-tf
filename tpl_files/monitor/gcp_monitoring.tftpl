@@ -1,0 +1,15 @@
+#!/bin/bash
+# Install Docker
+${docker-install}
+
+cat > /home/${user-instance}/prometheus.yml <<- "SCRIPT"
+${prometheus-config}
+SCRIPT
+
+cat > /home/${user-instance}/loki-config.yml <<- "SCRIPT"
+${loki-config}
+SCRIPT
+
+cat > /home/${user-instance}/docker-compose.yml <<- "SCRIPT"
+${docker-compose}
+SCRIPT

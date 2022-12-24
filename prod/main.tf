@@ -6,7 +6,7 @@ locals {
       user          = local.user,
       instance_name = "jenkins-instance",
       instance_type = "e2-medium",
-      tags = ["jenkins"]
+      tags          = ["jenkins"]
       attached_disk = {
         "jenkins_data" = {
           source = google_compute_disk.jenkins_data.id,
@@ -29,7 +29,7 @@ locals {
       user          = local.user,
       context       = "sonarqube",
       instance_type = "e2-medium",
-      tags = ["sonarqube"]
+      tags          = ["sonarqube"]
       attached_disk = {},
       template_file = "${path.root}/../tpl_files/gcp_sonarqube.tftpl"
       template_vars = {
@@ -38,6 +38,39 @@ locals {
         "sonarqube-jdbc-password" = data.aws_ssm_parameter.sonarqube_pass.value,
       },
     },
+    "worker" = {
+      instance_name = "worker",
+      user          = local.user,
+      context       = "worker",
+      instance_type = "e2-small",
+      tags          = ["jenkins"]
+      attached_disk = {},
+      template_file = "${path.root}/../tpl_files/jk_worker/main.tftpl"
+      template_vars = {
+        "user-instance" = local.user,
+        "docker-install" = templatefile("${path.root}/../tpl_files/jk_worker/docker-install.tftpl", {"user-instance" = local.user }),
+        "java-install" = file("${path.root}/../tpl_files/jk_worker/java-install.tftpl"),
+        "tfenv-install" = templatefile("${path.root}/../tpl_files/jk_worker/tfenv-install.tftpl", {"user-instance" = local.user , "terraform-version" = "1.3.5"}),
+        "awscli-install" = file("${path.root}/../tpl_files/jk_worker/awscli-install.tftpl"),
+        "nvm-install" = templatefile("${path.root}/../tpl_files/jk_worker/nvm-install.tftpl", {"node_version" = "18.12.1"}),
+      },
+    }
+    # "monitoring" = {
+    #   instance_name = "monitoring",
+    #   user          = local.user,
+    #   context       = "monitoring",
+    #   instance_type = "e2-medium",
+    #   tags = ["monitoring"]
+    #   attached_disk = {},
+    #   template_file = "${path.root}/../tpl_files/monitor/gcp_monitoring.tftpl"
+    #   template_vars = {
+    #     "user-instance" = local.user,
+    #     "docker-install" = file("${path.root}/../tpl_files/gcp_docker.tftpl"),
+    #     "docker-compose" = file("${path.root}/../tpl_files/monitor/gcp_docker-compose_monitor.tftpl")
+    #     "prometheus-config" = file("${path.root}/../tpl_files/monitor/gcp_prometheus_config.tftpl")
+    #     "loki-config" = file("${path.root}/../tpl_files/monitor/gcp_loki_config.tftpl")
+    #   },
+    # },
   }
 }
 
@@ -71,7 +104,7 @@ resource "google_compute_firewall" "vpc_firewall" {
 
   allow {
     protocol = "tcp"
-    ports    = ["22", "80", "443", "50000"]
+    ports    = ["22", "80", "443", "8081", "9100", "9494", "50000"]
   }
 
   allow {
@@ -88,7 +121,7 @@ resource "google_compute_firewall" "vpc_firewall_sonarqube" {
 
   allow {
     protocol = "tcp"
-    ports    = ["22", "443", "9000", "9092"]
+    ports    = ["22", "80", "443", "9000", "9090", "9091", "9092", "9093", "9094", "9100", "3100", "3000"]
   }
 
   allow {
@@ -96,8 +129,24 @@ resource "google_compute_firewall" "vpc_firewall_sonarqube" {
   }
   # Change to the IP address provided by VPN
   source_ranges = ["0.0.0.0/0"]
-  target_tags   = ["sonarqube"]
+  target_tags   = ["sonarqube", "monitoring"]
 }
+
+# resource "google_compute_firewall" "vpc_firewall_monitoring" {
+#   name    = "vpc-firewall-monitoring"
+#   network = google_compute_network.vpc_network.self_link
+
+#   allow {
+#     protocol = "tcp"
+#     ports    = ["22", "80", "443", "9090", "9091", "9092", "9093", "9094", "9095", "3100", "3000"]
+#   }
+#   allow {
+#     protocol = "icmp"
+#   }
+#   # Change to the IP address provided by VPN
+#   source_ranges = ["0.0.0.0/0"]
+#   target_tags   = ["monitoring"]
+# }
 
 # ----------------- ROUTE -----------------
 # resource "google_compute_route" "vpc_route" {
@@ -113,6 +162,9 @@ module "key_pairs" {
     },
     "sonarqube" = {
       "context" = "sonarqube",
+    },
+    "worker" = {
+      "context" = "worker",
     },
   }
   source      = "../modules/key_pairs"
@@ -149,8 +201,8 @@ module "gcp_instance" {
 
   tags = each.value.tags
 
-  vpc_network   = google_compute_network.vpc_network.self_link
-  vpc_subnet    = google_compute_subnetwork.vpc_subnet.self_link
+  vpc_network = google_compute_network.vpc_network.self_link
+  vpc_subnet  = google_compute_subnetwork.vpc_subnet.self_link
 
   public_key  = module.key_pairs[each.value.context].public_key
   private_key = module.key_pairs[each.value.context].private_key

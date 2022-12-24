@@ -1,3 +1,4 @@
+# -------------------- GCP VARIABLES --------------------
 variable "instance_name" {
   type        = string
   default     = "instance-name"
@@ -68,15 +69,15 @@ variable "amis" {
   type        = map(map(list(string)))
   default = {
     "ubuntu" = {
-      owners = ["099720109477"]
-      ami_name  = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+      owners   = ["099720109477"]
+      ami_name = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
     },
     "linux_ecs" = {
-      owners = ["591542846629"]
-      ami_name  = ["*amazon-ecs-optimized"]
+      owners   = ["591542846629"]
+      ami_name = ["*amazon-ecs-optimized"]
     }
   }
-} 
+}
 
 variable "key_pairs" {
   description = "A map of key pairs to use for the instances."
@@ -88,7 +89,7 @@ variable "key_pairs" {
     # },
     "chat_ecs" = {
       key_name = "chat"
-      context = "ecs"
+      context  = "ecs"
     },
   }
 }
