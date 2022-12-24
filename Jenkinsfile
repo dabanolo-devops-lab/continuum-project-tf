@@ -16,12 +16,16 @@ pipeline {
     }
     stage('init') {
       steps {
-        sh 'terraform -chdir=prod/ init'
+        sh """#!/bin/bash -el
+        terraform -chdir=prod/ init
+        """
       }
     }
     stage('validate') {
       steps {
-        sh 'terraform -chdir=prod/ validate'
+        sh """#!/bin/bash -el
+        terraform -chdir=prod/ validate
+        """
       }
     }
     stage('plan') {
@@ -30,7 +34,9 @@ pipeline {
       }
       steps {
         sh 'echo "${BUILD_VERSION}"'
-        sh 'terraform -chdir=prod/ plan -var "app_version=${BUILD_VERSION}"'
+        sh """#!/bin/bash -el
+        terraform -chdir=prod/ plan -var "app_version=${BUILD_VERSION}"
+        """
       }
     }
     stage('apply') {
