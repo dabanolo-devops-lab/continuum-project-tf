@@ -4,6 +4,9 @@ pipeline {
       label 'terraform'
     }
   }
+  environment{
+    BUILD_VERSION = sh(script: "$(tail -n 1 /home/ubuntu/jenkins/build_version)", returnStdout: true).trim()
+  }
   options {
     ansiColor('xterm')
   }
@@ -11,6 +14,7 @@ pipeline {
     stage('Checkout code') {
       steps {
         sh 'echo "${BRANCH_NAME}"'
+        sh 'echo "${BUILD_VERSION}"'
         // git branch: 'main', credentialsId: 'jenkins-dabanolo-continuum', url: 'https://github.com/dabanolo-devops-lab/continuum-project'
       }
     }
@@ -31,9 +35,7 @@ pipeline {
       }
     }
     stage('plan') {
-      environment{
-        BUILD_VERSION = sh(script: "tail -n 1 /home/ubuntu/jenkins/build_version", returnStdout: true).trim()
-      }
+      
       steps {
         sh 'echo "${BUILD_VERSION}"'
         withAWS(region:'us-east-1',credentials:'aws_dabanolo'){
@@ -46,9 +48,6 @@ pipeline {
     stage('apply') {
       when {
         branch 'main'
-      }
-      environment{
-        BUILD_VERSION = sh(script: "tail -n 1 /home/ubuntu/jenkins/build_version", returnStdout: true).trim()
       }
       steps {
         // sh 'terraform apply --auto-approve'
