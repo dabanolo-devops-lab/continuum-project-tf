@@ -55,9 +55,19 @@ pipeline {
       }
       steps {
         withAWS(region:'us-east-1',credentials:'aws_dabanolo'){
-          sh """#!/bin/bash -el
-          terraform -chdir=prod/ apply --auto-approve -var "app_version=${BUILD_VERSION}"
-          """
+          script {
+            def APPLY_CHOICE=input  message: 'Do you want to apply the changes into the infrasctructure?',
+                                    ok: 'Ok',
+                                    parameters: [booleanParam('Apply')]
+            if ("${APPLY_CHOICE}") {
+                echo "APPLYING"
+                sh """#!/bin/bash -el
+                terraform -chdir=prod/ apply --auto-approve -var "app_version=${BUILD_VERSION}"
+                """
+            } else {
+                echo "NOT APPLYING"
+            }
+          }
         }
         sh 'echo "SUCCESS"'
         sh 'echo "${BUILD_VERSION}"'

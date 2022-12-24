@@ -269,9 +269,9 @@ resource "aws_alb_listener" "front_end_https" {
 resource "aws_autoscaling_group" "chat_app_asg" {
   name                      = "chat-app"
   vpc_zone_identifier       = [aws_subnet.public_subnet["public-1"].id]
-  max_size                  = 3
-  min_size                  = 1
-  desired_capacity          = 1
+  max_size                  = 5
+  min_size                  = 2
+  desired_capacity          = 2
   health_check_grace_period = 120
   default_cooldown          = 30
   # health_check_type         = "ELB"
@@ -323,7 +323,6 @@ resource "aws_security_group" "chat_app_cluster" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
-
 
 # ---------- ECS CLUSTER ----------
 resource "aws_launch_configuration" "chat_app_lc" {
