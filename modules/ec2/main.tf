@@ -40,10 +40,14 @@ resource "aws_instance" "this" {
     destination = "/home/ubuntu/jenkins_certs/jenkins.jks"
   }
 
-
   # provisioner "remote-exec" {
   #   inline = [
   #     "sudo docker compose up -d",
   #   ]
   # }
+}
+
+resource "aws_eip" "this" {
+  instance = aws_instance.this.id
+  vpc = true
 }

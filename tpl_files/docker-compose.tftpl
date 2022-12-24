@@ -14,6 +14,6 @@ services:
       - /home/ubuntu/jenkins_certs:/certs/client:ro
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      JAVA_OPTS: -Djenkins.install.runSetupWizard=false
+      JAVA_OPTS: -Djenkins.install.runSetupWizard=true
       JENKINS_OPTS: --httpPort=-1 --httpsPort=8443 --httpsKeyStore=/certs/client/jenkins.jks --httpsKeyStorePassword=${keystore_pass}
     restart: on-failure

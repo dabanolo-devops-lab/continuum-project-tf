@@ -1,0 +1,18 @@
+#!/bin/bash
+if [[ -f /etc/startup_was_launched ]]; then exit 0; fi
+
+${java-install}
+
+${awscli-install}
+
+${nvm-install}
+
+sudo su ${user-instance}
+
+${docker-install}
+
+${tfenv-install}
+
+exit
+
+sudo touch /etc/startup_was_launched

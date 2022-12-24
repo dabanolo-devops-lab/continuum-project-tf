@@ -1,3 +1,48 @@
+# -------------------- GCP VARIABLES --------------------
+variable "instance_name" {
+  type        = string
+  default     = "instance-name"
+  description = "Name of the instance"
+}
+
+variable "cloud" {
+  type        = string
+  default     = "gcp"
+  description = "Cloud provider"
+}
+
+variable "environment" {
+  type        = string
+  default     = "production"
+  description = "Environment"
+}
+
+variable "user" {
+  type        = string
+  default     = "admin"
+  description = "User designated for the instance"
+}
+
+variable "context" {
+  type        = string
+  default     = "jenkins"
+  description = "Context of use for the instance"
+}
+
+variable "gcp_instances" {
+  type = map(any)
+  default = {
+    "jenkins" = {
+      context       = "jenkins",
+      user          = "ubuntu",
+      instance_name = "jenkins-instance",
+      instance_type = "e2-medium"
+    }
+  }
+}
+
+
+# -------------------- AWS VARIABLES --------------------
 variable "free_tier_instance_type" {
   description = "The instance type to use based on free tier availability."
   type        = string
@@ -24,27 +69,27 @@ variable "amis" {
   type        = map(map(list(string)))
   default = {
     "ubuntu" = {
-      owners = ["099720109477"]
-      ami_name  = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+      owners   = ["099720109477"]
+      ami_name = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
     },
     "linux_ecs" = {
-      owners = ["591542846629"]
-      ami_name  = ["*amazon-ecs-optimized"]
+      owners   = ["591542846629"]
+      ami_name = ["*amazon-ecs-optimized"]
     }
   }
-} 
+}
 
 variable "key_pairs" {
   description = "A map of key pairs to use for the instances."
   type        = map(map(string))
   default = {
-    "jenkins_main" = {
-      key_name = "jenkins"
-      context = "main"
-    },
+    # "jenkins_main" = {
+    #   key_name = "jenkins"
+    #   context = "main"
+    # },
     "chat_ecs" = {
       key_name = "chat"
-      context = "ecs"
+      context  = "ecs"
     },
   }
 }
@@ -142,4 +187,10 @@ variable "name_prefix" {
   description = "The prefix to use for all resources."
   type        = string
   default     = "continuum"
+}
+
+variable "app_version" {
+  description = "The tag to use for the Docker image."
+  type        = string
+  default     = "10"
 }

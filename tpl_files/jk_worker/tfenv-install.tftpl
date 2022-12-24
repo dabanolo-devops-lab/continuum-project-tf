@@ -1,0 +1,11 @@
+git clone --depth=1 https://github.com/tfutils/tfenv.git ~/.tfenv
+echo 'export PATH="$HOME/.tfenv/bin:$PATH"' >> ~/.bash_profile
+mkdir -p ~/.local/bin/
+. ~/.profile
+ln -s ~/.tfenv/bin/* ~/.local/bin
+
+which tfenv
+
+tfenv install ${terraform-version}
+tfenv use ${terraform-version}
+terraform --version

@@ -1,0 +1,96 @@
+#!/bin/bash
+if [[ -f /etc/startup_was_launched ]]; then exit 0; fi
+sudo mkdir /home/${user-instance}/jenkins
+sudo mkdir -p /home/${user-instance}/jenkins/certs
+sudo mkdir /home/${user-instance}/jenkins_certs
+sudo chown ${user-instance}:${user-instance} /home/${user-instance}/jenkins
+sudo chown ${user-instance}:${user-instance} /home/${user-instance}/jenkins_certs
+sudo apt-get update
+sudo apt-get install \
+    ca-certificates \
+    curl \
+    gnupg \
+    lsb-release -y
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin -y
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo groupadd docker
+sudo usermod -aG docker ${user-instance}
+sudo systemctl enable docker
+
+cat > /home/${user-instance}/jenkins/docker-compose.yml <<- "SCRIPT"
+version: '3.8'
+services:
+  jenkins:
+    image: public.ecr.aws/r7v4s4l1/dabanolo/jenkins:1.0.0
+    privileged: true
+    user: root
+    ports:
+      - 8080:8080
+      - 50000:50000
+    container_name: dabanolo_jenkins
+    volumes:
+      - /mnt/disks/jenkins:/var/jenkins_home
+      - /home/${user-instance}/jenkins_certs:/certs/client:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      JAVA_OPTS: -Djenkins.install.runSetupWizard=true
+      # JENKINS_OPTS: --httpPort=-1 --httpsPort=8443 --httpsKeyStore=/certs/client/jenkins.jks --httpsKeyStorePassword=${keystore-pass}
+    restart: on-failure
+    networks:
+      - jenkins
+  caddy:
+    image: caddy:2.6.2-alpine
+    container_name: dabanolo_reverse-proxy
+    restart: on-failure
+    network_mode: "host"
+    # command: caddy reverse-proxy --from https://jenkins.dannybanol.dev --to 127.0.0.1:8080
+    ports:
+      - 80:80
+      - 443:443
+      - 443:443/udp
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+      - /home/${user-instance}/jenkins/Caddyfile:/etc/caddy/Caddyfile
+      - /home/${user-instance}/jenkins/certs:/etc/caddy/certs
+    depends_on:
+      - jenkins
+volumes:
+  caddy_data:
+  caddy_config:
+networks:
+  jenkins:
+    driver: bridge
+SCRIPT
+
+# Setting up the secondary disk to store jenkins data
+#sudo mkfs.ext4 -m 0 -E lazy_itable_init=0,lazy_journal_init=0,discard /dev/sdb
+sudo mkdir -p /mnt/disks/jenkins
+sudo mount -o discard,defaults /dev/sdb /mnt/disks/jenkins
+sudo chmod a+w /mnt/disks/jenkins
+uuid=$( sudo blkid /dev/sdb | grep -oP 'UUID="(.*?)"' | tr -d 'UUID="' | tr -d '"' )
+UUID="$uuid" /mnt/disks/jenkins ext4 discard,defaults,nofail 0 2 >> /etc/fstab
+
+# Setting up the Caddyfile
+cat > /home/${user-instance}/jenkins/Caddyfile <<- "SCRIPT"
+${jenkins-caddyfile}
+SCRIPT
+
+# Passing certs to the jenkins container
+cat > /home/${user-instance}/jenkins/certs/domain.cert.pem <<- "SCRIPT"
+${domain-cert}
+SCRIPT
+
+cat > /home/${user-instance}/jenkins/certs/private.key.pem <<- "SCRIPT"
+${private-key-cert}
+SCRIPT
+
+# Up until here, the one time setup is done
+touch /etc/startup_was_launched

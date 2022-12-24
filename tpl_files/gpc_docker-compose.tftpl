@@ -1,0 +1,43 @@
+version: '3.8'
+services:
+  jenkins:
+    image: public.ecr.aws/r7v4s4l1/dabanolo/jenkins:1.0.0
+    privileged: true
+    user: root
+    ports:
+      - 8080:8080
+      - 50000:50000
+    container_name: dabanolo_jenkins
+    volumes:
+      - /mnt/disks/jenkins:/var/jenkins_home
+      - /home/${user-instance}/jenkins_certs:/certs/client:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      JAVA_OPTS: -Djenkins.install.runSetupWizard=true
+      # JENKINS_OPTS: --httpPort=-1 --httpsPort=8443 --httpsKeyStore=/certs/client/jenkins.jks --httpsKeyStorePassword=${keystore-pass}
+    restart: on-failure
+    networks:
+      - jenkins
+  caddy:
+    image: caddy:2.6.2-alpine
+    container_name: dabanolo_reverse-proxy
+    restart: on-failure
+    network_mode: "host"
+    # command: caddy reverse-proxy --from https://jenkins.dannybanol.dev --to 127.0.0.1:8080
+    ports:
+      - 80:80
+      - 443:443
+      - 443:443/udp
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+      - /home/${user-instance}/jenkins/Caddyfile:/etc/caddy/Caddyfile
+      - /home/${user-instance}/jenkins/certs:/etc/caddy/certs
+    depends_on:
+      - jenkins
+volumes:
+  caddy_data:
+  caddy_config:
+networks:
+  jenkins:
+    driver: bridge
