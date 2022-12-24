@@ -16,9 +16,11 @@ pipeline {
     }
     stage('init') {
       steps {
-        sh """#!/bin/bash -el
-        terraform -chdir=prod/ init
-        """
+        withAWS(region:'us-east-1',credentials:'aws_dabanolo'){
+          sh """#!/bin/bash -el
+          terraform -chdir=prod/ init
+          """
+        }
       }
     }
     stage('validate') {
@@ -34,9 +36,11 @@ pipeline {
       }
       steps {
         sh 'echo "${BUILD_VERSION}"'
-        sh """#!/bin/bash -el
-        terraform -chdir=prod/ plan -var "app_version=${BUILD_VERSION}"
-        """
+        withAWS(region:'us-east-1',credentials:'aws_dabanolo'){
+          sh """#!/bin/bash -el
+          terraform -chdir=prod/ plan -var "app_version=${BUILD_VERSION}"
+          """
+        }
       }
     }
     stage('apply') {
@@ -48,7 +52,9 @@ pipeline {
       }
       steps {
         // sh 'terraform apply --auto-approve'
-        // sh 'terraform -chdir=prod/ apply --auto-approve -var "app_version=${BUILD_VERSION}"'
+        // withAWS(region:'us-east-1',credentials:'aws_dabanolo'){
+          // sh 'terraform -chdir=prod/ apply --auto-approve -var "app_version=${BUILD_VERSION}"'
+        // }
         sh 'echo "SUCCESS"'
         sh 'echo "${BUILD_VERSION}"'
       }
